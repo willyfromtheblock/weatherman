@@ -16,6 +16,7 @@ class WeatherWatcher {
   late Location _location;
   late double _lat;
   late double _long;
+  late int _numberOfTimeSlots;
 
   factory WeatherWatcher() {
     return _cache.putIfAbsent(
@@ -31,6 +32,7 @@ class WeatherWatcher {
     final env = Platform.environment;
     _lat = double.parse(env["WEATHER_LOCATION_LAT"]!);
     _long = double.parse(env["WEATHER_LOCATION_LONG"]!);
+    _numberOfTimeSlots = int.parse(env["NUMBER_OF_TIME_SLOTS"]!);
 
     //populate prices
     await _populatePriceData();
@@ -90,10 +92,6 @@ class WeatherWatcher {
       };
     });
 
-    // Filter the hourly data to keep only hours with "off_peak" price rating
-    hourlyData =
-        hourlyData.where((hour) => hour['priceRating'] == 'off_peak').toList();
-
     // Sort the hourly data by price (ascending), then by time (ascending)
     hourlyData.sort((a, b) {
       int priceComparison = a['price'].compareTo(b['price']);
@@ -104,7 +102,7 @@ class WeatherWatcher {
     });
 
     // Find the four hours with the lowest price and highest temperature
-    var cheapestHours = hourlyData.sublist(0, 4); //TODO make configurable
+    var cheapestHours = hourlyData.sublist(0, _numberOfTimeSlots);
     cheapestHours.sort((a, b) => a['time'].compareTo(b['time']));
 
     // Create a list of BestHour objects from the cheapestHours list
