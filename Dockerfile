@@ -1,0 +1,22 @@
+# Use latest stable channel SDK.
+FROM dart:stable AS build
+
+# Resolve app dependencies.
+WORKDIR /app
+COPY pubspec.* ./
+RUN dart pub get
+
+# Copy app source code (except anything in .dockerignore) and AOT compile app.
+COPY . .
+RUN dart pub get
+RUN dart compile exe bin/weatherman.dart -o bin/weatherman
+
+# Build minimal serving image from AOT-compiled `/weatherman`
+# and the pre-built AOT-runtime in the `/runtime/` directory of the base image.
+FROM debian:bullseye-slim
+COPY --from=build /runtime/ /
+COPY --from=build /app/bin/weatherman /app/bin/
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Start weatherman.
+CMD ["/app/bin/weatherman"]
