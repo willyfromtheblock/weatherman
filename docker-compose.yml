@@ -13,6 +13,7 @@ services:
       - RAPID_API_SECRET=
       - WEATHER_LOCATION_LAT=
       - WEATHER_LOCATION_LONG=
+      - NUMBER_OF_TIME_SLOTS=
     restart: always
     ports: 
       - "3002:3002"    
