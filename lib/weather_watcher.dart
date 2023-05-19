@@ -70,8 +70,9 @@ class WeatherWatcher {
     final timeInSeconds = dateTime.millisecondsSinceEpoch ~/ 1000;
 
     final priceData = await HttpWrapper().getProtected(
-        path:
-            'https://pvpc-hourly-spanish-energy-prices-api.p.rapidapi.com/price-daily/$timeInSeconds/peninsular');
+      path:
+          'https://pvpc-hourly-spanish-energy-prices-api.p.rapidapi.com/price-daily/$timeInSeconds/peninsular',
+    ); //TODO allow location to be configurable
     final weatherData = await HttpWrapper().get(
       path:
           'https://api.open-meteo.com/v1/forecast?latitude=$_lat&longitude=$_long&hourly=temperature_2m&forecast_days=1&start_date=$isoDate&end_date=$isoDate&timezone=Europe%2FBerlin',
