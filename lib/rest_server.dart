@@ -14,6 +14,7 @@ import 'tools/logger.dart';
 
 class RESTServer {
   final _logger = LoggerWrapper().logger;
+  final _env = Platform.environment;
 
   RESTServer();
 
@@ -28,7 +29,7 @@ class RESTServer {
     400,
     {
       "message":
-          "This timestamp is not included in the current table. strom_api does not serve this time frame."
+          "This timestamp is not included in the current table. weatherman does not serve this time frame."
     },
   );
 
@@ -38,8 +39,7 @@ class RESTServer {
     _httpServer.all(
       '/best-time-daily/:timestamp:int/',
       (req, res) {
-        if (req.headers.value('API_KEY') !=
-            Platform.environment['API_SECRET']!) {
+        if (req.headers.value('API_KEY') != _env['API_SECRET']!) {
           throw AlfredException(
             401,
             {'error': 'You are not authorized to perform this operation'},
@@ -84,7 +84,7 @@ class RESTServer {
     );
 
     final server = await _httpServer.listen(
-      int.parse(Platform.environment['HTTP_PORT']!),
+      int.parse(_env['HTTP_PORT']!),
     );
     _logger.i('http_server: Listening on ${server.port}');
   }
