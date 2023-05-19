@@ -11,6 +11,7 @@ services:
       - HTTP_LOG_LEVEL=info
       - HTTP_PORT=3002
       - RAPID_API_SECRET=
+      - RAPID_API_HOST=
       - API_SECRET=
       - WEATHER_LOCATION_LAT=
       - WEATHER_LOCATION_LONG=
