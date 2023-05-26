@@ -9,8 +9,6 @@ void main() async {
   Map<String, String> env = Platform.environment;
   List<String> requiredEnvs = [
     "API_SECRET",
-    "RAPID_API_KEY",
-    "RAPID_API_HOST",
     "HTTP_LOG_LEVEL",
     "LOG_LEVEL",
     "HTTP_PORT",

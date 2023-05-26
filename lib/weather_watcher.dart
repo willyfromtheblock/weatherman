@@ -3,28 +3,29 @@ import 'dart:io';
 import 'package:cron/cron.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart';
-import 'package:weatherman/models/best_hour.dart';
-import 'package:weatherman/tools/http_wrapper.dart';
 
+import 'models/hour_with_temperature.dart';
+import 'models/price_period.dart';
+import 'tools/http_wrapper.dart';
 import 'tools/logger.dart';
 
 class WeatherWatcher {
   static final Map<String, WeatherWatcher> _cache = <String, WeatherWatcher>{};
   final _logger = LoggerWrapper().logger;
   final _cron = Cron();
-  final List<BestHour> _bestHours = [];
+  final List<HourWithTemperature> _hoursWithTemperatures = [];
   late Location _location;
   late double _lat;
   late double _long;
-  late int _numberOfTimeSlots;
 
   factory WeatherWatcher() {
     return _cache.putIfAbsent(
         'WeatherWatcher', () => WeatherWatcher._internal());
   }
+
   WeatherWatcher._internal();
 
-  List<BestHour> get bestHours => _bestHours;
+  List<HourWithTemperature> get hoursWithTemperatures => _hoursWithTemperatures;
 
   Future<void> init() async {
     tz.initializeTimeZones();
@@ -32,109 +33,130 @@ class WeatherWatcher {
     final env = Platform.environment;
     _lat = double.parse(env["WEATHER_LOCATION_LAT"]!);
     _long = double.parse(env["WEATHER_LOCATION_LONG"]!);
-    _numberOfTimeSlots = int.parse(env["NUMBER_OF_TIME_SLOTS"]!);
 
-    //populate prices
     await _populatePriceData();
-
-    //schedule crons
-    /* 
-    This cronjob will get the price data every day at 20:30 (Madrid time) for the Spanish API
-    */
-    _cron.schedule(Schedule.parse('31 20 * * *'), () async {
-      //default timezone for docker-compose.yml is Europe/Madrid as well
-      _logger.i('cron: get price for next day');
-      await _getPricesFromAPI(
-        TZDateTime.now(_location).add(Duration(days: 1)),
-      );
-    });
-
-    /* 
-    This cronjob cleans up the data table, every day at 21:00 (Madrid time)
-    */
-    _cron.schedule(Schedule.parse('0 21 * * *'), () async {
-      final oneDayAgo = TZDateTime.now(_location).subtract(Duration(days: 1));
-      _logger.i('cron: removing data before day ${oneDayAgo.day}');
-      _logger.d('cron: _bestHours before: ${_bestHours.length}');
-
-      _bestHours.removeWhere(
-        (element) => element.time.isBefore(oneDayAgo),
-      );
-
-      _logger.d('cron: _bestHours after: ${_bestHours.length}');
-    });
+    _scheduleCronJobs();
   }
 
-  Future<void> _getPricesFromAPI(DateTime dateTime) async {
-    final isoDate = dateTime.toIso8601String().split('T')[0];
-    final timeInSeconds = dateTime.millisecondsSinceEpoch ~/ 1000;
+  void _cleanupOldData() {
+    final oneDayAgo = TZDateTime.now(_location).subtract(Duration(days: 1));
+    _logger.i('cron: removing data before day ${oneDayAgo.day}');
+    _logger.d('cron: _bestHours before: ${_hoursWithTemperatures.length}');
 
-    final priceData = await HttpWrapper().getProtected(
-      path:
-          'https://pvpc-hourly-spanish-energy-prices-api.p.rapidapi.com/price-daily/$timeInSeconds/peninsular',
-    ); //TODO allow location to be configurable
+    _hoursWithTemperatures
+        .removeWhere((element) => element.time.isBefore(oneDayAgo));
+
+    _logger.d('cron: _bestHours after: ${_hoursWithTemperatures.length}');
+  }
+
+  Future<void> _getWeatherAndHolidaysFromApi(DateTime dateTimeX) async {
+    final dateTime = dateTimeX.add(Duration(days: 1));
+    bool isHolidayOrWeekend = dateTime.weekday == 6 || dateTime.weekday == 7;
+    final isoDate = dateTime.toIso8601String().split('T')[0];
+
+    if (!isHolidayOrWeekend) {
+      final holidayData = await HttpWrapper().get(
+        path: 'https://date.nager.at/api/v3/publicholidays/2023/ES',
+      );
+
+      if (holidayData is List) {
+        isHolidayOrWeekend = holidayData.any((holiday) =>
+            holiday['date'] == isoDate && holiday['global'] == true);
+      }
+
+      if (!isHolidayOrWeekend) {
+        _logger.i('API: not a holiday');
+      } else {
+        _logger.i('API: found a holiday');
+      }
+    }
+
     final weatherData = await HttpWrapper().get(
       path:
           'https://api.open-meteo.com/v1/forecast?latitude=$_lat&longitude=$_long&hourly=temperature_2m&forecast_days=1&start_date=$isoDate&end_date=$isoDate&timezone=Europe%2FBerlin',
     );
 
-    // Create a list of hourly data tuples with time, price, and temperature
     var hourlyData =
         List.generate(weatherData['hourly']['time'].length, (index) {
       var time = weatherData['hourly']['time'][index];
-      var price = priceData[index]['price'];
       var temperature = weatherData['hourly']['temperature_2m'][index];
-      var priceRating = priceData[index]['price_rating'];
-      return {
-        'time': time,
-        'price': price,
-        'temperature': temperature,
-        'priceRating': priceRating
-      };
+      return {'time': time, 'temperature': temperature};
     });
 
-    // Sort the hourly data by price (ascending), then by time (ascending)
-    hourlyData.sort((a, b) {
-      int priceComparison = a['price'].compareTo(b['price']);
-      if (priceComparison != 0) {
-        return priceComparison;
-      }
-      return a['time'].compareTo(b['time']);
-    });
-
-    // Find the four hours with the lowest price and highest temperature
-    var cheapestHours = hourlyData.sublist(0, _numberOfTimeSlots);
-    cheapestHours.sort((a, b) => a['time'].compareTo(b['time']));
-
-    // Create a list of BestHour objects from the cheapestHours list
-    for (var element in cheapestHours) {
-      _bestHours.add(
-        BestHour(
+    if (isHolidayOrWeekend) {
+      _logger.i('is holiday or weekend');
+      for (var element in hourlyData) {
+        final newBestHour = HourWithTemperature(
           time: DateTime.parse(element['time']),
-          price: element['price'],
           temperature: element['temperature'],
-        ),
+          period: PricePeriod.superOffPeak,
+        );
+        _hoursWithTemperatures.add(newBestHour);
+        _logger.i(
+          'Added hour: ${newBestHour.time.toString()} - ${newBestHour.period} - ${newBestHour.temperature}',
+        );
+      }
+    } else {
+      _logger.i('is not holiday or weekend');
+      List<String> timeList = List<String>.from(weatherData['hourly']['time']);
+      List<double> temperatureList =
+          List<double>.from(weatherData['hourly']['temperature_2m']);
+
+      List<MapEntry<String, double>> hourTemperaturePairs = List.generate(
+        timeList.length,
+        (index) => MapEntry(timeList[index], temperatureList[index]),
       );
-      _logger.i(
-        'Added best hour: ${DateTime.parse(element['time'])} - ${element['price']} - ${element['temperature']}',
-      );
+
+      List<MapEntry<String, double>> filteredPairs = hourTemperaturePairs
+          .where((pair) =>
+              (pair.key.contains(RegExp(r'T0[0-7]|T22|T23'))) ||
+              (pair.key.contains(RegExp(r'T08|T09|T14|T15|T16|T17'))))
+          .toList();
+
+      List<HourWithTemperature> results = filteredPairs.map((pair) {
+        DateTime time = DateTime.parse(pair.key);
+        PricePeriod period = getPricePeriod(time.hour);
+        double temperature = pair.value;
+        return HourWithTemperature(
+          period: period,
+          temperature: temperature,
+          time: time,
+        );
+      }).toList();
+
+      for (HourWithTemperature hourWithTemp in results) {
+        _hoursWithTemperatures.add(hourWithTemp);
+        _logger.i(
+          'Added hour: ${hourWithTemp.time.toString()} - ${hourWithTemp.period} - ${hourWithTemp.temperature}',
+        );
+      }
     }
+  }
+
+  Future<void> _getWeatherAndHolidaysFromApiTomorrow() async {
+    final tomorrow = TZDateTime.now(_location).add(Duration(days: 1));
+    _logger.i('cron: get price for next day');
+    await _getWeatherAndHolidaysFromApi(tomorrow);
   }
 
   Future<void> _populatePriceData() async {
     final now = TZDateTime.now(_location);
-    await _getPricesFromAPI(now); //TODAY
+    await _getWeatherAndHolidaysFromApi(now); // TODAY
 
     if (now.hour >= 20 && now.hour <= 23) {
-      //check if init happened between 20 and 23 -> cron might not have run -> get tomorrows data
       if (now.hour == 20 && now.minute < 30) {
-        //don't fetch before 20:30
         return;
       }
 
-      await _getPricesFromAPI(
-        now.add(Duration(days: 1)),
-      );
+      await _getWeatherAndHolidaysFromApi(now.add(Duration(days: 1)));
     }
+  }
+
+  void _scheduleCronJobs() {
+    _cron.schedule(
+      Schedule.parse('31 20 * * *'),
+      _getWeatherAndHolidaysFromApiTomorrow,
+    );
+    _cron.schedule(Schedule.parse('0 21 * * *'), _cleanupOldData);
   }
 }

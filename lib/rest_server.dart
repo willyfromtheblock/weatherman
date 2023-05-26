@@ -37,7 +37,7 @@ class RESTServer {
     //API header middleware
     //Enable only if API protected mode is true in env variables
     _httpServer.all(
-      '/best-time-daily/:timestamp:int/',
+      '/best-time-daily/:timestamp:int/:slots:int',
       (req, res) {
         if (req.headers.value('API_KEY') != _env['API_SECRET']!) {
           throw AlfredException(
@@ -64,22 +64,33 @@ class RESTServer {
     /// int - timestamp: in s e c o n d s unix time U T C
     /// if timestamp is 0, current day for the zone will be used
     //
+    /// Parameter 2:
+    /// int - slots: number of results to return
+    //
 
     _httpServer.get(
-      '/best-time-daily/:timestamp:int/',
+      '/best-time-daily/:timestamp:int/:slots:int',
       (req, res) async {
         final timestamp = _parseDateTime(req.params['timestamp']);
         final timeNow = _getTimeForZone(timestamp);
+        final slots = req.params['slots'];
 
-        final prices = WeatherWatcher().bestHours;
-        final result = prices.where(
-          (element) => element.time.day == timeNow.day,
-        );
+        final prices = WeatherWatcher().hoursWithTemperatures;
+        final result = prices
+            .where(
+              (element) => element.time.day == timeNow.day,
+            )
+            .toList();
         if (result.isEmpty) {
           throw notInSetException;
+        } else {
+          // sorts hourlyData by highest temperature
+          result.sort((a, b) => b.temperature.compareTo(a.temperature));
+          final shortenedList = result.sublist(0, slots);
+          //sort shorenedList by time
+          shortenedList.sort((a, b) => a.time.compareTo(b.time));
+          await res.json(shortenedList.map((e) => e.toMap()).toList());
         }
-
-        await res.json(result.map((e) => e.toMap()).toList());
       },
     );
 

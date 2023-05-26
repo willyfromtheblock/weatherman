@@ -1,11 +1,11 @@
 # Weatherman 
-is a simple tool build on top of [strom_api](https://github.com/willyfromtheblock/strom_api "strom_api") and the [open-meteo](https://open-meteo.com/ "open-meteo") API.
+is a simple tool build on top of [nager.at holiday API](https://date.nager.at/Api "nager.at") and the [open-meteo](https://open-meteo.com/ "open-meteo") API.
 
-It allows you to define a location with lat and long coordinates for which it will get a weather forecast for the next 24 hours from **open-meteo**. It then queries **strom_api** for the respective electricity prices in **Spain** (currently only peninsular.)
+It allows you to define a location with lat and long coordinates for which it will get a weather forecast for the next 24 hours from **open-meteo**. It then queries **nager.at** if the respective day is a holiday in Spain (presently not configurable), so all day is considered superOffPeak.
 
-Prices will now be ranked by temperature, so you can get the lowest energy price at the highest outside temperature, ideal for **heat pump** applications.
+Prices will now be ranked by temperature, so you can get the highest outside temperature in the best energy price window, ideal for **heat pump** applications.
 
-The number of time slots is configurable, see **docker-compose.yml**. 
+The number of time slots is configurable in the request.
 
 Work in progress.
 
@@ -17,7 +17,6 @@ Work in progress.
 ### Configure
 - adapt environment in **docker-compose.yaml** accordingly or create a **docker-compose.override.yaml** file
 - **do not change TZ**
-- Adapt **RAPID_API_KEY** and **_HOST** accordingly
 - **API_SECRET** is required by default. Incoming queries to the REST server need to provide this as **API_KEY** in the request header.
 
 ### Setup

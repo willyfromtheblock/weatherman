@@ -1,19 +1,21 @@
-class BestHour {
+import 'package:weatherman/models/price_period.dart';
+
+class HourWithTemperature {
   DateTime time;
-  double price;
+  PricePeriod period;
   double temperature;
 
   Map toMap() {
     return {
       'time': time.toString(),
-      'price': price,
+      'period': period.toString(),
       'temperature': temperature,
     };
   }
 
-  BestHour({
+  HourWithTemperature({
     required this.time,
-    required this.price,
+    required this.period,
     required this.temperature,
   });
 }

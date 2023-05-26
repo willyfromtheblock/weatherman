@@ -73,32 +73,4 @@ class HttpWrapper {
       rethrow;
     }
   }
-
-  Future<dynamic> getProtected({
-    required String path,
-    bool trimmed = false,
-  }) async {
-    try {
-      final res = await _dio.get(
-        path,
-        options: Options(
-          headers: {
-            'Content-Type': 'application/json',
-            'X-RapidAPI-Key': env['RAPID_API_KEY'],
-            'X-RapidAPI-Host': env['RAPID_API_HOST']
-          },
-        ),
-      );
-
-      final data = res.data.toString();
-      if (trimmed == true) {
-        return data.trim();
-      }
-
-      return res.data;
-    } catch (e) {
-      log(e.toString());
-      rethrow;
-    }
-  }
 }
