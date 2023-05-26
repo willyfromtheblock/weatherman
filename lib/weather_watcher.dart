@@ -49,8 +49,7 @@ class WeatherWatcher {
     _logger.d('cron: _bestHours after: ${_hoursWithTemperatures.length}');
   }
 
-  Future<void> _getWeatherAndHolidaysFromApi(DateTime dateTimeX) async {
-    final dateTime = dateTimeX.add(Duration(days: 1));
+  Future<void> _getWeatherAndHolidaysFromApi(DateTime dateTime) async {
     bool isHolidayOrWeekend = dateTime.weekday == 6 || dateTime.weekday == 7;
     final isoDate = dateTime.toIso8601String().split('T')[0];
 
