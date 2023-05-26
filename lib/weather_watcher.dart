@@ -142,8 +142,8 @@ class WeatherWatcher {
     final now = TZDateTime.now(_location);
     await _getWeatherAndHolidaysFromApi(now); // TODAY
 
-    if (now.hour >= 20 && now.hour <= 23) {
-      if (now.hour == 20 && now.minute < 30) {
+    if (now.hour >= 23 && now.hour <= 0) {
+      if (now.hour == 23 && now.minute < 30) {
         return;
       }
 
@@ -153,9 +153,9 @@ class WeatherWatcher {
 
   void _scheduleCronJobs() {
     _cron.schedule(
-      Schedule.parse('31 20 * * *'),
+      Schedule.parse('30 23 * * *'),
       _getWeatherAndHolidaysFromApiTomorrow,
     );
-    _cron.schedule(Schedule.parse('0 21 * * *'), _cleanupOldData);
+    _cron.schedule(Schedule.parse('45 23 * * *'), _cleanupOldData);
   }
 }
