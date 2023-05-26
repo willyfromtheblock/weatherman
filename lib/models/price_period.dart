@@ -1,5 +1,10 @@
 enum PricePeriod { peak, offPeak, superOffPeak }
 
+// get String for price period
+String getPricePeriodName(PricePeriod period) {
+  return period.toString().split('.').last;
+}
+
 PricePeriod getPricePeriod(int hour) {
   return pricePeriods[hour]!;
 }

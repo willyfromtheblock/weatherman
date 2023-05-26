@@ -8,7 +8,7 @@ class HourWithTemperature {
   Map toMap() {
     return {
       'time': time.toString(),
-      'period': period.toString(),
+      'period': getPricePeriodName(period),
       'temperature': temperature,
     };
   }
