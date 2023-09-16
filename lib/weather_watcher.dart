@@ -134,7 +134,7 @@ class WeatherWatcher {
 
   Future<void> _getWeatherAndHolidaysFromApiTomorrow() async {
     final tomorrow = TZDateTime.now(_location).add(Duration(days: 1));
-    _logger.i('cron: get price for next day');
+    _logger.i('cron: get weather and holidays for next day');
     await _getWeatherAndHolidaysFromApi(tomorrow);
   }
 
