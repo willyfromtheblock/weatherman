@@ -34,6 +34,19 @@ class HttpWrapper {
     _logger.d('Dio initialized ... ');
   }
 
+  void _handleError(Object rawError) {
+    final e = rawError as DioError;
+    log(e.toString());
+    if (e.response != null) {
+      log(e.response!.data);
+      log(e.response!.headers);
+      // log(e.requestOptions.path);
+    } else {
+      log(e.requestOptions);
+      log(e.message);
+    }
+  }
+
   Future<dynamic> post(String path, Map payload) async {
     try {
       final res = await _dio.post(
@@ -42,7 +55,7 @@ class HttpWrapper {
       );
       return res.data;
     } catch (e) {
-      log(e.toString());
+      _handleError(e);
       rethrow;
     }
   }
@@ -69,7 +82,7 @@ class HttpWrapper {
 
       return res.data;
     } catch (e) {
-      log(e.toString());
+      _handleError(e);
       rethrow;
     }
   }

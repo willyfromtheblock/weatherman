@@ -54,9 +54,13 @@ class WeatherWatcher {
     final isoDate = dateTime.toIso8601String().split('T')[0];
 
     if (!isHolidayOrWeekend) {
+      _logger.d('Fetching holiday data ...');
+
       final holidayData = await HttpWrapper().get(
         path: 'https://date.nager.at/api/v3/publicholidays/2023/ES',
       );
+
+      _logger.d('Holiday data: $holidayData');
 
       if (holidayData is List) {
         isHolidayOrWeekend = holidayData.any((holiday) =>
@@ -70,10 +74,15 @@ class WeatherWatcher {
       }
     }
 
+    //get weather data
+    _logger.d('Fetching weather data ...');
+
     final weatherData = await HttpWrapper().get(
       path:
-          'https://api.open-meteo.com/v1/forecast?latitude=$_lat&longitude=$_long&hourly=temperature_2m&forecast_days=1&start_date=$isoDate&end_date=$isoDate&timezone=Europe%2FBerlin',
+          'https://api.open-meteo.com/v1/forecast?latitude=$_lat&longitude=$_long&hourly=temperature_2m&start_date=$isoDate&end_date=$isoDate&timezone=Europe%2FBerlin',
     );
+
+    _logger.d('Weather data: $weatherData');
 
     var hourlyData =
         List.generate(weatherData['hourly']['time'].length, (index) {
