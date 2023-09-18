@@ -51,6 +51,18 @@ class RESTServer {
     _httpServer.get(
       '/alive',
       (req, res) async {
+        final timestamp = _parseDateTime(0);
+        final timeNow = _getTimeForZone(timestamp);
+        final prices = WeatherWatcher().hoursWithTemperatures;
+
+        final result = prices.where(
+          (element) => element.time.day == timeNow.day,
+        );
+
+        if (result.isEmpty) {
+          throw notInSetException;
+        }
+
         res.json({'message': 'I am alive!'});
       },
     );
