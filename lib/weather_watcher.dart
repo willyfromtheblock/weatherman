@@ -56,8 +56,9 @@ class WeatherWatcher {
     if (!isHolidayOrWeekend) {
       _logger.d('Fetching holiday data ...');
 
+      final currentYear = DateTime.now().year;
       final holidayData = await HttpWrapper().get(
-        path: 'https://date.nager.at/api/v3/publicholidays/2023/ES',
+        path: 'https://date.nager.at/api/v3/publicholidays/$currentYear/ES',
       );
 
       _logger.d('Holiday data: $holidayData');
