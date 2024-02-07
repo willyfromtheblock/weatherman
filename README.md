@@ -15,7 +15,7 @@ Work in progress.
 - docker-compose
 
 ### Configure
-- adapt environment in **docker-compose.yaml** accordingly or create a **docker-compose.override.yaml** file
+- adapt environment in **.env** to your needs, see .env.example
 - **do not change TZ**
 - **API_SECRET** is required by default. Incoming queries to the REST server need to provide this as **API_KEY** in the request header.
 
