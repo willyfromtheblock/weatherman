@@ -5,15 +5,8 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: weatherman
-    environment: 
-      - TZ=Europe/Madrid #do NOT change
-      - LOG_LEVEL=info
-      - HTTP_LOG_LEVEL=info
-      - HTTP_PORT=3002
-      - API_SECRET=
-      - WEATHER_LOCATION_LAT=
-      - WEATHER_LOCATION_LONG=
-      - NUMBER_OF_TIME_SLOTS=
+    env_file:
+      - .env
     restart: always
     ports: 
       - "3002:3002"    
