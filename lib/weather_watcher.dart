@@ -152,11 +152,7 @@ class WeatherWatcher {
     final now = TZDateTime.now(_location);
     await _getWeatherAndHolidaysFromApi(now); // TODAY
 
-    if (now.hour >= 23 && now.hour <= 0) {
-      if (now.hour == 23 && now.minute < 30) {
-        return;
-      }
-
+    if (now.hour >= 23 && now.minute >= 30) {
       await _getWeatherAndHolidaysFromApi(now.add(Duration(days: 1)));
     }
   }
