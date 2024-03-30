@@ -143,17 +143,18 @@ class WeatherWatcher {
   }
 
   Future<void> _getWeatherAndHolidaysFromApiTomorrow() async {
-    final tomorrow = TZDateTime.now(_location).add(Duration(days: 1));
+    final tomorrow = _calcTomorrow();
     _logger.i('cron: get weather and holidays for next day');
     await _getWeatherAndHolidaysFromApi(tomorrow);
   }
 
   Future<void> _populatePriceData() async {
     final now = TZDateTime.now(_location);
+    final tomorrow = _calcTomorrow();
     await _getWeatherAndHolidaysFromApi(now); // TODAY
 
     if (now.hour >= 23 && now.minute >= 30) {
-      await _getWeatherAndHolidaysFromApi(now.add(Duration(days: 1)));
+      await _getWeatherAndHolidaysFromApi(tomorrow);
     }
   }
 
@@ -163,5 +164,12 @@ class WeatherWatcher {
       _getWeatherAndHolidaysFromApiTomorrow,
     );
     _cron.schedule(Schedule.parse('45 23 * * *'), _cleanupOldData);
+  }
+
+  TZDateTime _calcTomorrow() {
+    final now = TZDateTime.now(_location);
+    return now.add(Duration(days: 1)).subtract(
+          Duration(hours: 1),
+        ); //substract one hour in case of summer/winter time adjustment
   }
 }
