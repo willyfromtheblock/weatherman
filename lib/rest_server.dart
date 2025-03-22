@@ -1,4 +1,4 @@
-/// Find the implementation of the strom_api endpoints.
+/// Find the implementation of the weatherman endpoints.
 ///
 /// {@category REST}
 library rest_server;

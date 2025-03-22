@@ -35,7 +35,7 @@ class HttpWrapper {
   }
 
   void _handleError(Object rawError) {
-    final e = rawError as DioError;
+    final e = rawError as DioException;
     log(e.toString());
     if (e.response != null) {
       log(e.response!.data);
